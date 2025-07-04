@@ -10,7 +10,6 @@ use Predis\Command\Argument\Search\CreateArguments;
 use Predis\Command\Argument\Search\SchemaFields\TextField;
 use Predis\Command\Argument\Search\SchemaFields\VectorField;
 use Predis\Command\Argument\Search\SearchArguments;
-use Predis\Response\ServerException;
 
 class RedisVectorStore extends VectorStoreBase
 {
@@ -121,14 +120,13 @@ class RedisVectorStore extends VectorStoreBase
 
     private function createIndexIfMissing(int $vectorDimension): void
     {
-        try {
-            $this->client->ftinfo($this->redisIndex);
-        } catch (ServerException $e) {
-            if ($e->getMessage() !== 'Unknown index name') {
-                throw $e;
+        foreach ($this->client->ft_list() as $index) {
+            if ($index->getPayload() === $this->redisIndex) {
+                return;
             }
-            $this->createIndex($vectorDimension);
         }
+
+        $this->createIndex($vectorDimension);
     }
 
     private function createIndex(int $vectorDimension): void
